@@ -7,6 +7,7 @@ import { analyzeManagerMessage } from "@/lib/analysis";
 import { ensureDatabaseReady } from "@/lib/bootstrap";
 import { defaultManagerProfile } from "@/lib/defaults";
 import { prisma } from "@/lib/db";
+import { enhanceDraftWithLlm } from "@/lib/llm";
 
 const createWorkItemSchema = z.object({
   rawMessage: z.string().min(8, "Manager message should have enough detail to analyze."),
@@ -81,35 +82,49 @@ export async function createWorkItemAction(formData: FormData) {
     riskTolerance: managerProfile.riskTolerance as "low" | "medium" | "high",
     notes: managerProfile.notes,
   });
+  const enhanced = await enhanceDraftWithLlm({
+    rawMessage: parsed.data.rawMessage,
+    manager: {
+      id: managerProfile.id,
+      name: managerProfile.name,
+      responseLatencyHours: managerProfile.responseLatencyHours,
+      infoDensity: managerProfile.infoDensity as "high" | "medium" | "low",
+      proactiveCadence: managerProfile.proactiveCadence as "push-often" | "daily" | "milestone",
+      prefersConclusionFirst: managerProfile.prefersConclusionFirst,
+      riskTolerance: managerProfile.riskTolerance as "low" | "medium" | "high",
+      notes: managerProfile.notes,
+    },
+    draft,
+  });
 
   await prisma.workItem.create({
     data: {
       rawMessage: parsed.data.rawMessage,
       conversationContext: parsed.data.conversationContext,
-      mainlineTask: draft.mainlineTask,
-      thinking: draft.thinking,
-      plan: draft.plan,
-      timeline: draft.timeline,
-      expectedOutput: draft.expectedOutput,
-      neededResources: draft.neededResources,
-      decisionType: draft.decision.decisionType as DecisionType,
-      decisionReasoning: draft.decision.reasoning,
-      decisionConfidence: draft.decision.confidence,
-      missingInputs: draft.decision.missingInputs,
-      recommendedEscalation: draft.decision.recommendedEscalation,
-      mainlinePriority: draft.mainlinePriority,
+      mainlineTask: enhanced.draft.mainlineTask,
+      thinking: enhanced.draft.thinking,
+      plan: enhanced.draft.plan,
+      timeline: enhanced.draft.timeline,
+      expectedOutput: enhanced.draft.expectedOutput,
+      neededResources: enhanced.draft.neededResources,
+      decisionType: enhanced.draft.decision.decisionType as DecisionType,
+      decisionReasoning: enhanced.draft.decision.reasoning,
+      decisionConfidence: enhanced.draft.decision.confidence,
+      missingInputs: enhanced.draft.decision.missingInputs,
+      recommendedEscalation: enhanced.draft.decision.recommendedEscalation,
+      mainlinePriority: enhanced.draft.mainlinePriority,
       workStatus:
-        draft.decision.decisionType === "MANAGER_APPROVAL_REQUIRED"
+        enhanced.draft.decision.decisionType === "MANAGER_APPROVAL_REQUIRED"
           ? WorkStatus.WAITING_ON_MANAGER
           : WorkStatus.IN_PROGRESS,
-      nextManagerUpdateAt: draft.nextManagerUpdateAt,
-      riskOrBlocker: draft.riskOrBlocker,
-      replyDraft: draft.replyDraft,
+      nextManagerUpdateAt: enhanced.draft.nextManagerUpdateAt,
+      riskOrBlocker: enhanced.draft.riskOrBlocker,
+      replyDraft: enhanced.draft.replyDraft,
       managerProfileId: managerProfile.id,
       followUps: {
         create: {
-          title: draft.followUpTitle,
-          dueAt: draft.nextManagerUpdateAt,
+          title: enhanced.draft.followUpTitle,
+          dueAt: enhanced.draft.nextManagerUpdateAt,
         },
       },
     },
@@ -282,24 +297,38 @@ export async function rerunWorkItemAnalysisAction(formData: FormData) {
     riskTolerance: workItem.managerProfile.riskTolerance as "low" | "medium" | "high",
     notes: workItem.managerProfile.notes,
   });
+  const enhanced = await enhanceDraftWithLlm({
+    rawMessage: workItem.rawMessage,
+    manager: {
+      id: workItem.managerProfile.id,
+      name: workItem.managerProfile.name,
+      responseLatencyHours: workItem.managerProfile.responseLatencyHours,
+      infoDensity: workItem.managerProfile.infoDensity as "high" | "medium" | "low",
+      proactiveCadence: workItem.managerProfile.proactiveCadence as "push-often" | "daily" | "milestone",
+      prefersConclusionFirst: workItem.managerProfile.prefersConclusionFirst,
+      riskTolerance: workItem.managerProfile.riskTolerance as "low" | "medium" | "high",
+      notes: workItem.managerProfile.notes,
+    },
+    draft,
+  });
 
   await prisma.workItem.update({
     where: { id: workItemId },
     data: {
-      thinking: draft.thinking,
-      plan: draft.plan,
-      timeline: draft.timeline,
-      expectedOutput: draft.expectedOutput,
-      neededResources: draft.neededResources,
-      decisionType: draft.decision.decisionType as DecisionType,
-      decisionReasoning: draft.decision.reasoning,
-      decisionConfidence: draft.decision.confidence,
-      missingInputs: draft.decision.missingInputs,
-      recommendedEscalation: draft.decision.recommendedEscalation,
-      mainlinePriority: draft.mainlinePriority,
-      nextManagerUpdateAt: draft.nextManagerUpdateAt,
-      riskOrBlocker: draft.riskOrBlocker,
-      replyDraft: draft.replyDraft,
+      thinking: enhanced.draft.thinking,
+      plan: enhanced.draft.plan,
+      timeline: enhanced.draft.timeline,
+      expectedOutput: enhanced.draft.expectedOutput,
+      neededResources: enhanced.draft.neededResources,
+      decisionType: enhanced.draft.decision.decisionType as DecisionType,
+      decisionReasoning: enhanced.draft.decision.reasoning,
+      decisionConfidence: enhanced.draft.decision.confidence,
+      missingInputs: enhanced.draft.decision.missingInputs,
+      recommendedEscalation: enhanced.draft.decision.recommendedEscalation,
+      mainlinePriority: enhanced.draft.mainlinePriority,
+      nextManagerUpdateAt: enhanced.draft.nextManagerUpdateAt,
+      riskOrBlocker: enhanced.draft.riskOrBlocker,
+      replyDraft: enhanced.draft.replyDraft,
       analysisVersion: { increment: 1 },
     },
   });

@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { ensureDatabaseReady } from "@/lib/bootstrap";
 import { buildReportSummaries } from "@/lib/reports";
 import { prisma } from "@/lib/db";
+import { isLlmAvailable } from "@/lib/llm";
 import {
   addFollowUpAction,
   createWorkItemAction,
@@ -18,6 +19,7 @@ export default async function Home() {
   await ensureDatabaseReady();
 
   const managerProfile = await prisma.managerProfile.findFirst();
+  const llmAvailable = isLlmAvailable();
   const workItems = await prisma.workItem.findMany({
     include: {
       followUps: {
@@ -39,6 +41,9 @@ export default async function Home() {
             This prototype takes one manager message, creates a structured work item,
             marks the decision boundary, drafts a manager-facing reply, and leaves
             behind a follow-up that does not disappear.
+          </p>
+          <p className="llm-pill">
+            AI rewrite: {llmAvailable ? "enabled via OpenAI Responses API" : "disabled, deterministic fallback"}
           </p>
         </div>
 
