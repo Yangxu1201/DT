@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum DecisionType {
+  CAN_DECIDE
+  RECOMMEND_ONLY
+  MANAGER_APPROVAL_REQUIRED
+  INSUFFICIENT_INFO
+}
+
+enum WorkStatus {
+  DRAFT
+  IN_PROGRESS
+  WAITING_ON_MANAGER
+  BLOCKED
+  COMPLETE
+}
+
+enum FollowUpStatus {
+  PENDING
+  DONE
+  MISSED
+}
+
+model ManagerProfile {
+  id                      String     @id @default(cuid())
+  name                    String
+  responseLatencyHours    Int
+  infoDensity             String
+  proactiveCadence        String
+  prefersConclusionFirst  Boolean    @default(true)
+  riskTolerance           String
+  notes                   String?
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+  workItems               WorkItem[]
+}
+
+model WorkItem {
+  id                     String        @id @default(cuid())
+  rawMessage             String
+  conversationContext    String?
+  mainlineTask           String
+  thinking               String
+  plan                   String
+  timeline               String
+  expectedOutput         String
+  neededResources        Json
+  decisionType           DecisionType
+  decisionReasoning      String
+  decisionConfidence     Int
+  missingInputs          Json
+  recommendedEscalation  String
+  mainlinePriority       String
+  workStatus             WorkStatus    @default(IN_PROGRESS)
+  nextManagerUpdateAt    DateTime
+  riskOrBlocker          String
+  replyDraft             String
+  analysisVersion        Int           @default(1)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  managerProfileId       String
+  managerProfile         ManagerProfile @relation(fields: [managerProfileId], references: [id], onDelete: Cascade)
+  followUps              FollowUp[]
+
+  @@index([managerProfileId, workStatus, nextManagerUpdateAt])
+  @@index([createdAt])
+}
+
+model FollowUp {
+  id           String         @id @default(cuid())
+  title        String
+  dueAt        DateTime
+  status       FollowUpStatus @default(PENDING)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  workItemId   String
+  workItem     WorkItem       @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([workItemId, status, dueAt])
+}
