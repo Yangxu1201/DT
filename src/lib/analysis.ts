@@ -36,6 +36,36 @@ export type WorkItemDraft = {
   followUpTitle: string;
 };
 
+export function buildClarificationDraft(args: {
+  manager: ManagerProfileInput;
+  task: string;
+  missingInputs: string[];
+}) {
+  const missing = args.missingInputs.filter(Boolean);
+
+  if (missing.length === 0) {
+    return "";
+  }
+
+  const opener = args.manager.prefersConclusionFirst
+    ? `我先把卡点说清楚：这件事我已经接住，但在推进“${args.task}”前还缺几个关键输入。`
+    : `我先同步一下我的理解：我会推进“${args.task}”，但现在还缺几个关键输入，所以我先和你对齐。`;
+
+  const detailLine =
+    args.manager.infoDensity === "high"
+      ? `我现在缺的是：${missing.join("；")}。`
+      : args.manager.infoDensity === "medium"
+        ? `目前还缺 ${missing.join("、")} 这几个输入。`
+        : `目前还缺几个关键输入想先和你确认。`;
+
+  const close =
+    args.manager.proactiveCadence === "push-often"
+      ? "你给我这几个信息后，我会马上往前推进，并尽快给你第一轮更新。"
+      : "你确认后我就按这个方向推进，并在下一轮给你同步结果。";
+
+  return `${opener} ${detailLine} ${close}`.trim();
+}
+
 const PRODUCT_DOMAIN_WORDS = [
   "feature",
   "roi",

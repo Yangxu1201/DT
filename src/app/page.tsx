@@ -3,6 +3,7 @@ import { ensureDatabaseReady } from "@/lib/bootstrap";
 import { buildReportSummaries } from "@/lib/reports";
 import { prisma } from "@/lib/db";
 import { isLlmAvailable } from "@/lib/llm";
+import { buildClarificationDraft } from "@/lib/analysis";
 import {
   addFollowUpAction,
   createWorkItemAction,
@@ -14,6 +15,10 @@ import {
 } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+function toStringList(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
 
 export default async function Home() {
   await ensureDatabaseReady();
@@ -230,11 +235,35 @@ export default async function Home() {
           {workItems.length > 0 ? (
             workItems.map((item) => (
               <article key={item.id} className="work-card">
+                {(() => {
+                  const missingInputs = toStringList(item.missingInputs);
+                  const clarificationDraft = buildClarificationDraft({
+                    manager: {
+                      id: item.managerProfile.id,
+                      name: item.managerProfile.name,
+                      responseLatencyHours: item.managerProfile.responseLatencyHours,
+                      infoDensity: item.managerProfile.infoDensity as "high" | "medium" | "low",
+                      proactiveCadence: item.managerProfile.proactiveCadence as
+                        | "push-often"
+                        | "daily"
+                        | "milestone",
+                      prefersConclusionFirst: item.managerProfile.prefersConclusionFirst,
+                      riskTolerance: item.managerProfile.riskTolerance as "low" | "medium" | "high",
+                      notes: item.managerProfile.notes,
+                    },
+                    task: item.mainlineTask,
+                    missingInputs,
+                  });
+
+                  return (
+                    <>
                 <div className="work-card-header">
                   <div>
                     <p className="priority-pill">{item.mainlinePriority}</p>
                     <h3>{item.mainlineTask}</h3>
-                    <p className="small-copy">Analysis v{item.analysisVersion}</p>
+                    <p className="small-copy">
+                      Analysis v{item.analysisVersion} · Draft source {item.draftSource}
+                    </p>
                   </div>
                   <div className="meta-stack">
                     <span className={clsx("status-pill", item.workStatus.toLowerCase())}>
@@ -242,6 +271,9 @@ export default async function Home() {
                     </span>
                     <span className="status-pill outline">
                       {item.decisionType.replaceAll("_", " ")}
+                    </span>
+                    <span className={clsx("status-pill", item.draftSource === "openai" ? "ai" : "outline")}>
+                      {item.draftSource === "openai" ? "OPENAI" : "DETERMINISTIC"}
                     </span>
                   </div>
                 </div>
@@ -285,6 +317,29 @@ export default async function Home() {
                       <p>{item.recommendedEscalation}</p>
                     </section>
                   </div>
+
+                  {missingInputs.length > 0 ? (
+                    <div className="clarify-box">
+                      <div className="clarify-header">
+                        <div>
+                          <h4>Missing inputs</h4>
+                          <p>These are the exact gaps blocking a safe next step.</p>
+                        </div>
+                        <span className="status-pill blocked">Needs clarification</span>
+                      </div>
+
+                      <ul className="missing-list">
+                        {missingInputs.map((missingInput) => (
+                          <li key={missingInput}>{missingInput}</li>
+                        ))}
+                      </ul>
+
+                      <label className="field compact">
+                        <span>Clarification draft to send upward</span>
+                        <textarea readOnly value={clarificationDraft} rows={4} />
+                      </label>
+                    </div>
+                  ) : null}
 
                   <div className="reply-box">
                     <label className="field compact">
@@ -380,6 +435,9 @@ export default async function Home() {
                     ))}
                   </div>
                 </div>
+                    </>
+                  );
+                })()}
               </article>
             ))
           ) : (

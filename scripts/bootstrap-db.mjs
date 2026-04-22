@@ -41,6 +41,7 @@ async function main() {
       "nextManagerUpdateAt" DATETIME NOT NULL,
       "riskOrBlocker" TEXT NOT NULL,
       "replyDraft" TEXT NOT NULL,
+      "draftSource" TEXT NOT NULL DEFAULT 'deterministic',
       "analysisVersion" INTEGER NOT NULL DEFAULT 1,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL,
@@ -50,6 +51,13 @@ async function main() {
         ON DELETE CASCADE ON UPDATE CASCADE
     );
   `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "WorkItem"
+    ADD COLUMN "draftSource" TEXT NOT NULL DEFAULT 'deterministic';
+  `).catch(() => {
+    // Existing databases will already have the column after the first successful add.
+  });
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "FollowUp" (

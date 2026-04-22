@@ -120,6 +120,7 @@ export async function createWorkItemAction(formData: FormData) {
       nextManagerUpdateAt: enhanced.draft.nextManagerUpdateAt,
       riskOrBlocker: enhanced.draft.riskOrBlocker,
       replyDraft: enhanced.draft.replyDraft,
+      draftSource: enhanced.source,
       managerProfileId: managerProfile.id,
       followUps: {
         create: {
@@ -329,6 +330,7 @@ export async function rerunWorkItemAnalysisAction(formData: FormData) {
       nextManagerUpdateAt: enhanced.draft.nextManagerUpdateAt,
       riskOrBlocker: enhanced.draft.riskOrBlocker,
       replyDraft: enhanced.draft.replyDraft,
+      draftSource: enhanced.source,
       analysisVersion: { increment: 1 },
     },
   });

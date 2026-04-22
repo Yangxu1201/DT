@@ -336,6 +336,11 @@ select:focus {
   color: #2a6a2f;
 }
 
+.status-pill.ai {
+  background: #dcecff;
+  color: #0f4c9a;
+}
+
 .meta-stack {
   display: flex;
   flex-wrap: wrap;
@@ -358,6 +363,7 @@ select:focus {
 }
 
 .detail-grid section,
+.clarify-box,
 .reply-box,
 .editor-box,
 .follow-up-box,
@@ -377,6 +383,26 @@ select:focus {
 .reply-box,
 .follow-up-box {
   margin-top: 16px;
+}
+
+.clarify-box {
+  margin-top: 16px;
+}
+
+.clarify-header {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.missing-list {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
 }
 
 .editor-box {

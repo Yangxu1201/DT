@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeManagerMessage } from "./analysis";
+import { analyzeManagerMessage, buildClarificationDraft } from "./analysis";
 
 const manager = {
   id: "mgr_1",
@@ -74,5 +74,17 @@ describe("analyzeManagerMessage", () => {
     expect(intenseResult.nextManagerUpdateAt.getTime()).toBeLessThan(
       slowResult.nextManagerUpdateAt.getTime(),
     );
+  });
+
+  it("builds a clarification draft from missing inputs and manager style", () => {
+    const draft = buildClarificationDraft({
+      manager,
+      task: "send the supplier recommendation",
+      missingInputs: ["Concrete deliverable", "Deadline or urgency"],
+    });
+
+    expect(draft).toContain("我先把卡点说清楚");
+    expect(draft).toContain("Concrete deliverable");
+    expect(draft).toContain("Deadline or urgency");
   });
 });
