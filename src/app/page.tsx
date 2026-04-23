@@ -4,12 +4,12 @@ import { buildReportSummaries } from "@/lib/reports";
 import { prisma } from "@/lib/db";
 import { isLlmAvailable } from "@/lib/llm";
 import { buildClarificationDraft } from "@/lib/analysis";
+import { ManagerProfileForm } from "@/components/manager-profile-form";
 import {
   addFollowUpAction,
   createWorkItemAction,
   rerunWorkItemAnalysisAction,
   updateFollowUpStatusAction,
-  updateManagerProfileAction,
   updateWorkItemAction,
   updateWorkItemStatusAction,
 } from "./actions";
@@ -54,92 +54,20 @@ export default async function Home() {
 
         <div className="manager-card">
           <p className="manager-label">Current manager profile</p>
-          <form action={updateManagerProfileAction} className="stack compact">
-            {managerProfile ? <input type="hidden" name="profileId" value={managerProfile.id} /> : null}
-
-            <label className="field compact">
-              <span>Manager name</span>
-              <input
-                type="text"
-                name="name"
-                defaultValue={managerProfile?.name ?? "Rule-setting remote manager"}
-                required
-              />
-            </label>
-
-            <div className="inline-fields">
-              <label className="field compact">
-                <span>Response in</span>
-                <input
-                  type="number"
-                  name="responseLatencyHours"
-                  min={1}
-                  max={72}
-                  defaultValue={managerProfile?.responseLatencyHours ?? 6}
-                  required
-                />
-              </label>
-
-              <label className="field compact">
-                <span>Info density</span>
-                <select name="infoDensity" defaultValue={managerProfile?.infoDensity ?? "high"}>
-                  <option value="high">high</option>
-                  <option value="medium">medium</option>
-                  <option value="low">low</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="inline-fields">
-              <label className="field compact">
-                <span>Proactive cadence</span>
-                <select
-                  name="proactiveCadence"
-                  defaultValue={managerProfile?.proactiveCadence ?? "push-often"}
-                >
-                  <option value="push-often">push-often</option>
-                  <option value="daily">daily</option>
-                  <option value="milestone">milestone</option>
-                </select>
-              </label>
-
-              <label className="field compact">
-                <span>Risk tolerance</span>
-                <select name="riskTolerance" defaultValue={managerProfile?.riskTolerance ?? "low"}>
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
-                  <option value="high">high</option>
-                </select>
-              </label>
-            </div>
-
-            <label className="field compact">
-              <span>Conclusion first</span>
-              <select
-                name="prefersConclusionFirst"
-                defaultValue={String(managerProfile?.prefersConclusionFirst ?? true)}
-              >
-                <option value="true">yes</option>
-                <option value="false">no</option>
-              </select>
-            </label>
-
-            <label className="field compact">
-              <span>Notes</span>
-              <textarea
-                name="notes"
-                rows={3}
-                defaultValue={
-                  managerProfile?.notes ??
-                  "Wants frequent visible updates, low patience, and proactive communication."
-                }
-              />
-            </label>
-
-            <button type="submit" className="secondary-button">
-              Save manager profile
-            </button>
-          </form>
+          <ManagerProfileForm
+            profile={{
+              id: managerProfile?.id,
+              name: managerProfile?.name ?? "Rule-setting remote manager",
+              responseLatencyHours: managerProfile?.responseLatencyHours ?? 6,
+              infoDensity: (managerProfile?.infoDensity as "high" | "medium" | "low") ?? "high",
+              proactiveCadence:
+                (managerProfile?.proactiveCadence as "push-often" | "daily" | "milestone") ??
+                "push-often",
+              prefersConclusionFirst: managerProfile?.prefersConclusionFirst ?? true,
+              riskTolerance: (managerProfile?.riskTolerance as "low" | "medium" | "high") ?? "low",
+              notes: managerProfile?.notes,
+            }}
+          />
         </div>
       </section>
 

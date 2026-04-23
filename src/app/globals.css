@@ -222,6 +222,33 @@ select:focus {
   border: 1px solid var(--line-strong);
 }
 
+.secondary-button:disabled,
+.primary-button:disabled,
+.follow-up-actions button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.form-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.form-feedback {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.form-feedback.success {
+  color: var(--accent);
+}
+
+.form-feedback.error {
+  color: var(--danger);
+}
+
 .report-grid,
 .work-list,
 .follow-up-list,

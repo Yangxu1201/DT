@@ -15,14 +15,14 @@ const createWorkItemSchema = z.object({
 });
 
 const updateManagerProfileSchema = z.object({
-  profileId: z.string().optional(),
+  profileId: z.string().nullable().optional().transform((value) => value ?? undefined),
   name: z.string().min(2, "Manager name is required."),
   responseLatencyHours: z.coerce.number().int().min(1).max(72),
   infoDensity: z.enum(["high", "medium", "low"]),
   proactiveCadence: z.enum(["push-often", "daily", "milestone"]),
   prefersConclusionFirst: z.enum(["true", "false"]).transform((value) => value === "true"),
   riskTolerance: z.enum(["low", "medium", "high"]),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional().transform((value) => value ?? undefined),
 });
 
 const updateWorkItemStatusSchema = z.object({
@@ -45,6 +45,11 @@ const addFollowUpSchema = z.object({
   title: z.string().min(3, "Follow-up title is required."),
   dueAt: z.string().min(3, "Pick a due time."),
 });
+
+export type ManagerProfileFormState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
 
 async function getOrCreateManagerProfile() {
   await ensureDatabaseReady();
@@ -134,7 +139,10 @@ export async function createWorkItemAction(formData: FormData) {
   revalidatePath("/");
 }
 
-export async function updateManagerProfileAction(formData: FormData) {
+export async function updateManagerProfileAction(
+  _previousState: ManagerProfileFormState,
+  formData: FormData,
+): Promise<ManagerProfileFormState> {
   await ensureDatabaseReady();
 
   const parsed = updateManagerProfileSchema.safeParse({
@@ -149,21 +157,36 @@ export async function updateManagerProfileAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Invalid manager profile input.");
+    return {
+      status: "error",
+      message: parsed.error.issues[0]?.message ?? "Invalid manager profile input.",
+    };
   }
 
   const { profileId, ...data } = parsed.data;
 
-  if (profileId) {
-    await prisma.managerProfile.update({
-      where: { id: profileId },
-      data,
-    });
-  } else {
-    await prisma.managerProfile.create({ data });
+  try {
+    if (profileId) {
+      await prisma.managerProfile.update({
+        where: { id: profileId },
+        data,
+      });
+    } else {
+      await prisma.managerProfile.create({ data });
+    }
+  } catch {
+    return {
+      status: "error",
+      message: "Could not save the manager profile. Please try again.",
+    };
   }
 
   revalidatePath("/");
+
+  return {
+    status: "success",
+    message: "Manager profile saved.",
+  };
 }
 
 export async function updateFollowUpStatusAction(formData: FormData) {
